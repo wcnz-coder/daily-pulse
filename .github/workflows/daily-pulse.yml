@@ -1,0 +1,40 @@
+name: daily-pulse
+
+# 每天在你所在时区的一个安全时刻提交一次，让贡献格子保持绿色。
+# UTC 03:17 = 北京时间 11:17（同日，不易跨天）。
+on:
+  schedule:
+    - cron: '17 3 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: daily-pulse
+  cancel-in-progress: false
+
+jobs:
+  pulse:
+    runs-on: ubuntu-latest
+    env:
+      TZ: Asia/Shanghai
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Append today's line
+        run: |
+          mkdir -p log
+          printf -- "- %s  %s\n" "$(date +%F)" "$(date +%FT%T%:z)" >> "log/$(date +%Y-%m).md"
+
+      - name: Commit as the account owner
+        run: |
+          git config user.name  "wcnz-coder"
+          git config user.email "wcnz021202973@gmail.com"
+          git add -A
+          if git diff --cached --quiet; then
+            echo "nothing to commit"
+          else
+            git commit -m "pulse: $(date +%F)"
+            git push
+          fi
